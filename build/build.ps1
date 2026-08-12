@@ -1,3 +1,9 @@
+$env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot'
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+
+Write-Host "JAVA_HOME = $env:JAVA_HOME"
+& "$env:JAVA_HOME\bin\java.exe" -version
+
 #Requires -Version 5.1
 <#
 .SYNOPSIS
@@ -28,7 +34,11 @@ function Invoke-Phase {
     } else {
         & $Script
     }
-    if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "Phase '$Name' failed with exit code $LASTEXITCODE" }
+    if (Test-Path Variable:LASTEXITCODE) {
+    if ($LASTEXITCODE -ne 0) {
+        throw "Phase '$Name' failed with exit code $LASTEXITCODE"
+    }
+}
     Write-Host ">>> Phase: $Name - OK"
 }
 

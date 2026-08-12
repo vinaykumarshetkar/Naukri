@@ -19,15 +19,19 @@ const e2eMockUrl = e2eMockArg ? e2eMockArg.slice('--e2e-mock='.length) : null;
  */
 function spawnBackend() {
   const resourcesPath = process.resourcesPath || path.join(__dirname, '..');
-  const javaExe = path.join(resourcesPath, 'jre', 'bin', 'javaw.exe');
+  const javaExe = path.join(resourcesPath, 'jre', 'bin', 'java.exe');
   const jar = path.join(resourcesPath, 'backend', 'naukri-be.jar');
 
   const child = spawn(javaExe, ['-jar', jar, '--server.port=0'], {
     stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+
+  child.stdout.on('data', (d) => {
+    process.stdout.write(d);
   });
 
   child.stderr.on('data', (d) => {
-    // Surface stderr to the main-process console for debugging
     process.stderr.write(d);
   });
 

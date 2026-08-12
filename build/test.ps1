@@ -51,14 +51,14 @@ Set-StrictMode -Version Latest
 
 # 1. BE verify
 Invoke-Section -Name 'BE verify' -Body {
-    $env:JAVA_HOME = 'C:\Users\e182114\.jdks\azul-17.0.10'
+    $env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot'
     & mvn -f (Join-Path $root 'backend\pom.xml') verify
     if ($LASTEXITCODE -ne 0) { throw "mvn verify exited $LASTEXITCODE" }
 }
 
 # 2. Mock tests
 Invoke-Section -Name 'Mock tests' -Body {
-    $env:JAVA_HOME = 'C:\Users\e182114\.jdks\azul-17.0.10'
+    $env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot'
     & mvn -f (Join-Path $root 'mock-naukri\pom.xml') test
     if ($LASTEXITCODE -ne 0) { throw "mvn test exited $LASTEXITCODE" }
 }
