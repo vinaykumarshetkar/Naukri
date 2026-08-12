@@ -1,7 +1,6 @@
 pipeline {
     agent {
         node {
-            label ''
             customWorkspace 'D:\\ABC\\4project\\Naukri'
         }
     }
