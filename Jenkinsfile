@@ -5,6 +5,9 @@ pipeline {
             customWorkspace 'D:\\ABC\\4project\\Naukri'
         }
     }
+        options {
+        skipDefaultCheckout(true)
+    }
       environment {
         JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.8-hotspot'
         PATH = "${JAVA_HOME}\\bin;${env.PATH}"
@@ -12,20 +15,21 @@ pipeline {
 
     stages {
 
-        stage('1. Use Local Source') {
+        stage('1. Verify Environment') {
             steps {
-                echo '===== USING LOCAL SOURCE CODE ====='
-
                 bat '''
-                echo Current directory:
-                cd
-                echo.
-                echo Checking project:
-                if not exist backend\\pom.xml exit /b 1
-                if not exist frontend\\package.json exit /b 1
-                if not exist electron\\package.json exit /b 1
+                echo ===== JAVA =====
+                echo %JAVA_HOME%
+                java -version
 
-                echo Local Naukri project found.
+                echo ===== MAVEN =====
+                mvn -version
+
+                echo ===== NODE =====
+                node -v
+
+                echo ===== NPM =====
+                npm -v
                 '''
             }
         }
