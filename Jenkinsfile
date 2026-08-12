@@ -215,7 +215,7 @@ pipeline {
                 echo '===== UPLOADING TO AZURE BLOB STORAGE ====='
 
                 azureUpload(
-                    containerName: 'smcont',
+                    containerName: 'naukri',
                     storageType: 'blobstorage',
                     filesPath: 'dist/**/*.exe',
                     storageCredentialId: 'azure-storage-cred'
