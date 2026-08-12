@@ -35,3 +35,4 @@ runs/
 
 # Claude Code local state
 .claude/
+.scannerwork/
