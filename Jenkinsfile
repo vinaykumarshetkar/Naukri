@@ -12,6 +12,7 @@ pipeline {
         JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.8-hotspot'
               NODE_HOME = 'C:\\Program Files\\nodejs'
         PATH = "${JAVA_HOME}\\bin;${env.PATH}"
+          $env:SONAR_TOKEN="YOUR_TOKEN"
     }
 
     stages {
@@ -128,17 +129,27 @@ pipeline {
         }
 
         stage('7b. SonarQube Analysis') {
-            steps {
-                echo '===== SONARQUBE ANALYSIS ====='
+    steps {
+        script {
+            def scannerHome = tool 'SonarScanner'
 
-                script {
-                    def scannerHome = tool 'SonarScanner'
-
-                    withSonarQubeEnv('SonarQubeServer') {
-                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\""
-                    }
-                }
+            withCredentials([
+                string(
+                    credentialsId: 'sonarcloud-token',
+                    variable: 'SONAR_TOKEN'
+                )
+            ]) {
+                bat """
+                "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                  -Dsonar.projectKey=naukri ^
+                  -Dsonar.organization=vinayproj ^
+                  -Dsonar.sources=backend/src,frontend/src,electron ^
+                  -Dsonar.exclusions=**/node_modules/**,**/target/**,**/dist/** ^
+                  -Dsonar.token=%SONAR_TOKEN%
+                """
             }
+        }
+    }
         }
 
         stage('8. Build Electron Application') {
