@@ -12,7 +12,6 @@ pipeline {
         JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.8-hotspot'
               NODE_HOME = 'C:\\Program Files\\nodejs'
         PATH = "${JAVA_HOME}\\bin;${env.PATH}"
-          $env:SONAR_TOKEN="YOUR_TOKEN"
     }
 
     stages {
