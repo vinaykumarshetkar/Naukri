@@ -27,9 +27,12 @@ pipeline {
                 mvn -version
 
                 echo ===== NODE =====
+                echo NODE_HOME=%NODE_HOME%
+                where node
                 node -v
 
                 echo ===== NPM =====
+                where npm
                 npm -v
                 '''
             }
