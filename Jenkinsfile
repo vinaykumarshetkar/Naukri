@@ -5,27 +5,35 @@ pipeline {
             customWorkspace 'D:\\ABC\\4project\\Naukri'
         }
     }
+        options {
+        skipDefaultCheckout(true)
+    }
       environment {
         JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.8-hotspot'
-        PATH = "${JAVA_HOME}\\bin;${env.PATH}"
+              NODE_HOME = 'C:\\Program Files\\nodejs'
+        PATH = "${JAVA_HOME}\\bin;${NODE_HOME};${env.PATH}"
     }
 
     stages {
 
-        stage('1. Use Local Source') {
+        stage('1. Verify Environment') {
             steps {
-                echo '===== USING LOCAL SOURCE CODE ====='
-
                 bat '''
-                echo Current directory:
-                cd
-                echo.
-                echo Checking project:
-                if not exist backend\\pom.xml exit /b 1
-                if not exist frontend\\package.json exit /b 1
-                if not exist electron\\package.json exit /b 1
+                echo ===== JAVA =====
+                echo %JAVA_HOME%
+                java -version
 
-                echo Local Naukri project found.
+                echo ===== MAVEN =====
+                mvn -version
+
+                echo ===== NODE =====
+                echo NODE_HOME=%NODE_HOME%
+                where node
+                node -v
+
+                echo ===== NPM =====
+                where npm
+                npm -v
                 '''
             }
         }
@@ -120,17 +128,27 @@ pipeline {
         }
 
         stage('7b. SonarQube Analysis') {
-            steps {
-                echo '===== SONARQUBE ANALYSIS ====='
+    steps {
+        script {
+            def scannerHome = tool 'SonarScanner'
 
-                script {
-                    def scannerHome = tool 'SonarScanner'
-
-                    withSonarQubeEnv('SonarQubeServer') {
-                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\""
-                    }
-                }
+            withCredentials([
+                string(
+                    credentialsId: 'sonarcloud-token',
+                    variable: 'SONAR_TOKEN'
+                )
+            ]) {
+                bat """
+                "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                  -Dsonar.projectKey=naukri ^
+                  -Dsonar.organization=vinayproj ^
+                  -Dsonar.sources=backend/src,frontend/src,electron ^
+                  -Dsonar.exclusions=**/node_modules/**,**/target/**,**/dist/** ^
+                  -Dsonar.token=%SONAR_TOKEN%
+                """
             }
+        }
+    }
         }
 
         stage('8. Build Electron Application') {
