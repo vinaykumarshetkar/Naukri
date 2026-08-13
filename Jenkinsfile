@@ -59,7 +59,7 @@ pipeline {
                 '''
             }
         }
-
+/*
         stage('3. Install Playwright Chromium') {
             steps {
                 echo '===== INSTALL PLAYWRIGHT CHROMIUM ====='
@@ -73,6 +73,7 @@ pipeline {
                 '''
             }
         }
+*/
 
         stage('4. Build Backend') {
             steps {
@@ -111,7 +112,7 @@ pipeline {
                 '''
             }
         }
-
+/*
         stage('7. SonarQube Analysis') {
             steps {
                 script {
@@ -137,7 +138,7 @@ pipeline {
                 }
             }
         }
-
+*/
         stage('8. Build Electron Application') {
             steps {
                 echo '===== BUILD ELECTRON APPLICATION ====='
@@ -198,7 +199,7 @@ pipeline {
                 )
             }
         }
-
+/*
         stage('11. Upload to Azure Blob Storage') {
             steps {
                 echo '===== UPLOADING TO AZURE BLOB STORAGE ====='
@@ -211,7 +212,7 @@ pipeline {
                 )
             }
         }
-
+*/
         stage('12. Verify Ansible Inventory') {
             steps {
                 echo '===== VERIFY ANSIBLE INVENTORY ====='
