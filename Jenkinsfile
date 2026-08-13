@@ -1,14 +1,9 @@
 pipeline {
-    agent {
-        node {
-            label ''
-            customWorkspace 'D:\\ABC\\4project\\Naukri'
-        }
+    agent any
+    options {
+    skipDefaultCheckout(true)
     }
-        options {
-        skipDefaultCheckout(true)
-    }
-      environment {
+    environment {
         JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.8-hotspot'
               NODE_HOME = 'C:\\Program Files\\nodejs'
         PATH = "${JAVA_HOME}\\bin;${NODE_HOME};${env.PATH}"
