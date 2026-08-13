@@ -59,21 +59,6 @@ pipeline {
                 '''
             }
         }
-/*
-        stage('3. Install Playwright Chromium') {
-            steps {
-                echo '===== INSTALL PLAYWRIGHT CHROMIUM ====='
-
-                powershell '''
-                & "$env:WORKSPACE\\build\\install-playwright.ps1"
-
-                if ($LASTEXITCODE -ne 0) {
-                    exit $LASTEXITCODE
-                }
-                '''
-            }
-        }
-*/
 
         stage('4. Build Backend') {
             steps {
@@ -110,32 +95,6 @@ pipeline {
                     exit $LASTEXITCODE
                 }
                 '''
-            }
-        }
-
-        stage('7. SonarQube Analysis') {
-            steps {
-                script {
-
-                    def scannerHome = tool 'SonarScanner'
-
-                    withCredentials([
-                        string(
-                            credentialsId: 'sonarcloud-token',
-                            variable: 'SONAR_TOKEN'
-                        )
-                    ]) {
-
-                        bat """
-                        "${scannerHome}\\bin\\sonar-scanner.bat" ^
-                          -Dsonar.projectKey=naukri ^
-                          -Dsonar.organization=vinayproj ^
-                          -Dsonar.sources=backend/src,frontend/src,electron ^
-                          -Dsonar.exclusions=**/node_modules/**,**/target/**,**/dist/** ^
-                          -Dsonar.token=%SONAR_TOKEN%
-                        """
-                    }
-                }
             }
         }
         
@@ -196,19 +155,6 @@ pipeline {
                 archiveArtifacts(
                     artifacts: 'dist/**/*.exe',
                     fingerprint: true
-                )
-            }
-        }
-
-        stage('11. Upload to Azure Blob Storage') {
-            steps {
-                echo '===== UPLOADING TO AZURE BLOB STORAGE ====='
-
-                azureUpload(
-                    containerName: 'naukri',
-                    storageType: 'blobstorage',
-                    filesPath: 'dist/**/*.exe',
-                    storageCredentialId: 'azure-storage-cred'
                 )
             }
         }
