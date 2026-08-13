@@ -1,5 +1,6 @@
 appId: com.adikarthik.naukriautomator
 productName: NaukriAutomator
+artifactName: "${productName}-${version}.${ext}"
 copyright: "Copyright © 2026 Adikarthik Gupta C B"
 
 directories:
