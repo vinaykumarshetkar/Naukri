@@ -11,6 +11,12 @@ pipeline {
 
     stages {
 
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('1. Verify Environment') {
             steps {
                 bat '''
@@ -215,6 +221,37 @@ pipeline {
                     filesPath: 'dist/**/*.exe',
                     storageCredentialId: 'azure-storage-cred'
                 )
+            }
+        }
+
+        stage('Ansible WinRM Test') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'windows-vm-credentials',
+                        usernameVariable: 'VM_USERNAME',
+                        passwordVariable: 'VM_PASSWORD'
+                    )
+                ]) {
+
+                    powershell '''
+                        $workspace = $env:WORKSPACE
+
+                        Write-Host "Jenkins workspace:"
+                        Write-Host $workspace
+
+                        # Convert Windows path to WSL path
+                        $wslWorkspace = wsl -d Debian wslpath -a "$workspace"
+
+                        Write-Host "WSL workspace:"
+                        Write-Host $wslWorkspace
+
+                        $env:ANSIBLE_VM_USERNAME = $env:VM_USERNAME
+                        $env:ANSIBLE_VM_PASSWORD = $env:VM_PASSWORD
+
+                        wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && cd '$wslWorkspace' && ansible windows -i inventory.ini -m ansible.windows.win_ping -e `"ansible_user=$ANSIBLE_VM_USERNAME`" -e `"ansible_password=$ANSIBLE_VM_PASSWORD`""
+                    '''
+                }
             }
         }
     }
