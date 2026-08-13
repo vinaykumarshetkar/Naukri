@@ -1,0 +1,28 @@
+---
+- name: Deploy Naukri application to Windows VM
+  hosts: windows
+  gather_facts: yes
+
+  tasks:
+
+    - name: Check Windows connectivity
+      ansible.windows.win_ping:
+
+    - name: Create Naukri deployment directory
+      ansible.windows.win_file:
+        path: C:\Naukri
+        state: directory
+
+    - name: Create backup directory
+      ansible.windows.win_file:
+        path: C:\Naukri\backup
+        state: directory
+
+    - name: Copy Naukri EXE to Windows VM
+      ansible.windows.win_copy:
+        src: "{{ artifact_path }}"
+        dest: "C:\\Naukri\\NaukriAutomator.exe"
+
+    - name: Display deployment result
+      ansible.builtin.debug:
+        msg: "Naukri EXE deployed successfully: {{ naukri_exe.stat.size }} bytes"
