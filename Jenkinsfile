@@ -1,8 +1,10 @@
 pipeline {
     agent any
+
     options {
-    skipDefaultCheckout(true)
+        skipDefaultCheckout(true)
     }
+
     environment {
         JAVA_HOME = 'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.12.8-hotspot'
         NODE_HOME = 'C:\\Program Files\\nodejs'
@@ -13,15 +15,20 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                echo '===== CHECKOUT FROM GIT ====='
                 checkout scm
             }
         }
 
         stage('1. Verify Environment') {
             steps {
+                echo '===== VERIFY ENVIRONMENT ====='
+
                 bat '''
-                echo ===== JAVA =====
+                echo ===== JAVA_HOME =====
                 echo %JAVA_HOME%
+
+                echo ===== JAVA =====
                 java -version
 
                 echo ===== MAVEN =====
@@ -39,30 +46,7 @@ pipeline {
             }
         }
 
-        stage('2. Verify Environment') {
-            steps {
-                echo '===== VERIFY ENVIRONMENT ====='
-
-                bat '''
-                echo ===== JAVA_HOME =====
-                echo %JAVA_HOME%
-        
-                echo ===== JAVA =====
-                java -version
-        
-                echo ===== MAVEN =====
-                mvn -version
-        
-                echo ===== NODE =====
-                node -v
-        
-                echo ===== NPM =====
-                npm -v
-                '''
-            }
-        }
-
-        stage('3. Fetch Java 17 JRE') {
+        stage('2. Fetch Java 17 JRE') {
             steps {
                 echo '===== FETCH APPLICATION JRE ====='
 
@@ -76,7 +60,7 @@ pipeline {
             }
         }
 
-        stage('4. Install Playwright Chromium') {
+        stage('3. Install Playwright Chromium') {
             steps {
                 echo '===== INSTALL PLAYWRIGHT CHROMIUM ====='
 
@@ -90,7 +74,7 @@ pipeline {
             }
         }
 
-        stage('5. Build Backend') {
+        stage('4. Build Backend') {
             steps {
                 echo '===== BUILD BACKEND ====='
 
@@ -102,7 +86,7 @@ pipeline {
             }
         }
 
-        stage('6. Build Mock Server') {
+        stage('5. Build Mock Server') {
             steps {
                 echo '===== BUILD MOCK SERVER ====='
 
@@ -114,7 +98,7 @@ pipeline {
             }
         }
 
-        stage('7. Build Frontend') {
+        stage('6. Build Frontend') {
             steps {
                 echo '===== BUILD FRONTEND ====='
 
@@ -128,28 +112,30 @@ pipeline {
             }
         }
 
-        stage('7b. SonarQube Analysis') {
-    steps {
-        script {
-            def scannerHome = tool 'SonarScanner'
+        stage('7. SonarQube Analysis') {
+            steps {
+                script {
 
-            withCredentials([
-                string(
-                    credentialsId: 'sonarcloud-token',
-                    variable: 'SONAR_TOKEN'
-                )
-            ]) {
-                bat """
-                "${scannerHome}\\bin\\sonar-scanner.bat" ^
-                  -Dsonar.projectKey=naukri ^
-                  -Dsonar.organization=vinayproj ^
-                  -Dsonar.sources=backend/src,frontend/src,electron ^
-                  -Dsonar.exclusions=**/node_modules/**,**/target/**,**/dist/** ^
-                  -Dsonar.token=%SONAR_TOKEN%
-                """
+                    def scannerHome = tool 'SonarScanner'
+
+                    withCredentials([
+                        string(
+                            credentialsId: 'sonarcloud-token',
+                            variable: 'SONAR_TOKEN'
+                        )
+                    ]) {
+
+                        bat """
+                        "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                          -Dsonar.projectKey=naukri ^
+                          -Dsonar.organization=vinayproj ^
+                          -Dsonar.sources=backend/src,frontend/src,electron ^
+                          -Dsonar.exclusions=**/node_modules/**,**/target/**,**/dist/** ^
+                          -Dsonar.token=%SONAR_TOKEN%
+                        """
+                    }
+                }
             }
-        }
-    }
         }
 
         stage('8. Build Electron Application') {
@@ -206,8 +192,10 @@ pipeline {
             steps {
                 echo '===== ARCHIVING ARTIFACTS ====='
 
-                archiveArtifacts artifacts: 'dist/**/*.exe',
-                                  fingerprint: true
+                archiveArtifacts(
+                    artifacts: 'dist/**/*.exe',
+                    fingerprint: true
+                )
             }
         }
 
@@ -224,8 +212,30 @@ pipeline {
             }
         }
 
-        stage('Ansible WinRM Test') {
+        stage('12. Verify Ansible Inventory') {
             steps {
+                echo '===== VERIFY ANSIBLE INVENTORY ====='
+
+                powershell '''
+                $inventory = Join-Path $env:WORKSPACE "inventory.ini"
+
+                if (-not (Test-Path $inventory)) {
+                    throw "inventory.ini was not found in the Git workspace: $inventory"
+                }
+
+                Write-Host "===== INVENTORY FOUND ====="
+                Write-Host $inventory
+
+                Get-Content $inventory
+                '''
+            }
+        }
+
+        stage('13. Ansible WinRM Test') {
+            steps {
+
+                echo '===== ANSIBLE WINDOWS VM TEST ====='
+
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'windows-vm-credentials',
@@ -235,21 +245,98 @@ pipeline {
                 ]) {
 
                     powershell '''
-                        $workspace = $env:WORKSPACE
+                    $ErrorActionPreference = "Stop"
 
-                        Write-Host "Jenkins workspace:"
-                        Write-Host $workspace
+                    Write-Host "===== JENKINS WORKSPACE ====="
+                    Write-Host $env:WORKSPACE
 
-                        # Convert Windows path to WSL path
-                        $wslWorkspace = wsl -d Debian wslpath -a "$workspace"
+                    # -------------------------------------------------
+                    # Verify inventory exists
+                    # -------------------------------------------------
 
-                        Write-Host "WSL workspace:"
-                        Write-Host $wslWorkspace
+                    $inventory = Join-Path $env:WORKSPACE "inventory.ini"
 
-                        $env:ANSIBLE_VM_USERNAME = $env:VM_USERNAME
-                        $env:ANSIBLE_VM_PASSWORD = $env:VM_PASSWORD
+                    if (-not (Test-Path $inventory)) {
+                        throw "inventory.ini not found: $inventory"
+                    }
 
-                        wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && cd '$wslWorkspace' && ansible windows -i inventory.ini -m ansible.windows.win_ping -e `"ansible_user=$ANSIBLE_VM_USERNAME`" -e `"ansible_password=$ANSIBLE_VM_PASSWORD`""
+                    Write-Host "Inventory:"
+                    Write-Host $inventory
+
+                    # -------------------------------------------------
+                    # Convert Jenkins Windows workspace to WSL path
+                    # -------------------------------------------------
+
+                    Write-Host "===== CONVERT WORKSPACE TO WSL ====="
+
+                    $wslWorkspace = (wsl -d Debian wslpath -a "$env:WORKSPACE").Trim()
+
+                    if (-not $wslWorkspace) {
+                        throw "Failed to convert Jenkins workspace to WSL path"
+                    }
+
+                    Write-Host "WSL Workspace:"
+                    Write-Host $wslWorkspace
+
+                    # -------------------------------------------------
+                    # Verify WSL
+                    # -------------------------------------------------
+
+                    Write-Host "===== CHECK WSL ====="
+
+                    wsl -d Debian -- echo "WSL is working"
+
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "WSL Debian is not available"
+                    }
+
+                    # -------------------------------------------------
+                    # Verify Ansible
+                    # -------------------------------------------------
+
+                    Write-Host "===== CHECK ANSIBLE ====="
+
+                    wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && ansible --version"
+
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Ansible is not available"
+                    }
+
+                    # -------------------------------------------------
+                    # Verify Windows collection
+                    # -------------------------------------------------
+
+                    Write-Host "===== CHECK ANSIBLE WINDOWS COLLECTION ====="
+
+                    wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && ansible-galaxy collection list ansible.windows"
+
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "ansible.windows collection is not available"
+                    }
+
+                    # -------------------------------------------------
+                    # Pass Jenkins credentials to WSL
+                    # -------------------------------------------------
+
+                    $env:ANSIBLE_VM_USERNAME = $env:VM_USERNAME
+                    $env:ANSIBLE_VM_PASSWORD = $env:VM_PASSWORD
+
+                    # -------------------------------------------------
+                    # Run Ansible
+                    # -------------------------------------------------
+
+                    Write-Host "===== RUN ANSIBLE WIN_PING ====="
+
+                    wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && cd '$wslWorkspace' && ansible windows -i inventory.ini -m ansible.windows.win_ping -e `"ansible_user=$env:ANSIBLE_VM_USERNAME`" -e `"ansible_password=$env:ANSIBLE_VM_PASSWORD`""
+
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Ansible WinRM connection failed"
+                    }
+
+                    Write-Host ""
+                    Write-Host "========================================"
+                    Write-Host "ANSIBLE WIN_PING SUCCESS"
+                    Write-Host "========================================"
                     '''
                 }
             }
@@ -257,12 +344,14 @@ pipeline {
     }
 
     post {
+
         success {
             echo '''
             ========================================
             NAUKRI CI BUILD SUCCESS
             ========================================
             Artifacts successfully generated.
+            Ansible WinRM connection successful.
             ========================================
             '''
         }
