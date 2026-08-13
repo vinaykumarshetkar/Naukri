@@ -158,135 +158,82 @@ pipeline {
                 )
             }
         }
+stage('13. Ansible WinRM Test') {
+    steps {
+        echo '===== ANSIBLE WINDOWS VM TEST ====='
 
-        stage('12. Verify Ansible Inventory') {
-            steps {
-                echo '===== VERIFY ANSIBLE INVENTORY ====='
+        withCredentials([
+            usernamePassword(
+                credentialsId: 'windows-vm-credentials',
+                usernameVariable: 'VM_USERNAME',
+                passwordVariable: 'VM_PASSWORD'
+            )
+        ]) {
 
-                powershell '''
+            powershell '''
+                $ErrorActionPreference = "Stop"
+
+                Write-Host "===== JENKINS WORKSPACE ====="
+                Write-Host $env:WORKSPACE
+
                 $inventory = Join-Path $env:WORKSPACE "inventory.ini"
 
                 if (-not (Test-Path $inventory)) {
-                    throw "inventory.ini was not found in the Git workspace: $inventory"
+                    throw "inventory.ini not found: $inventory"
                 }
 
-                Write-Host "===== INVENTORY FOUND ====="
+                Write-Host "Inventory:"
                 Write-Host $inventory
 
-                Get-Content $inventory
-                '''
-            }
-        }
+                Write-Host "===== CONVERT WORKSPACE TO WSL ====="
 
-        stage('13. Ansible WinRM Test') {
-            steps {
+                $wslWorkspace = $env:WORKSPACE.Replace('\\','/')
+                $wslWorkspace = $wslWorkspace -replace '^C:', '/mnt/c'
 
-                echo '===== ANSIBLE WINDOWS VM TEST ====='
+                Write-Host "WSL Workspace:"
+                Write-Host $wslWorkspace
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'windows-vm-credentials',
-                        usernameVariable: 'VM_USERNAME',
-                        passwordVariable: 'VM_PASSWORD'
-                    )
-                ]) {
+                Write-Host "===== CHECK WSL ====="
 
-                    powershell '''
-                    $ErrorActionPreference = "Stop"
+                wsl -d Debian -- echo "WSL Debian works"
 
-                    Write-Host "===== JENKINS WORKSPACE ====="
-                    Write-Host $env:WORKSPACE
-
-                    # -------------------------------------------------
-                    # Verify inventory exists
-                    # -------------------------------------------------
-
-                    $inventory = Join-Path $env:WORKSPACE "inventory.ini"
-
-                    if (-not (Test-Path $inventory)) {
-                        throw "inventory.ini not found: $inventory"
-                    }
-
-                    Write-Host "Inventory:"
-                    Write-Host $inventory
-
-                    # -------------------------------------------------
-                    # Convert Jenkins Windows workspace to WSL path
-                    # -------------------------------------------------
-
-                    Write-Host "===== CONVERT WORKSPACE TO WSL ====="
-
-                    $wslWorkspace = (wsl -d Debian wslpath -a "$env:WORKSPACE").Trim()
-
-                    if (-not $wslWorkspace) {
-                        throw "Failed to convert Jenkins workspace to WSL path"
-                    }
-
-                    Write-Host "WSL Workspace:"
-                    Write-Host $wslWorkspace
-
-                    # -------------------------------------------------
-                    # Verify WSL
-                    # -------------------------------------------------
-
-                    Write-Host "===== CHECK WSL ====="
-
-                    wsl -d Debian -- echo "WSL is working"
-
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "WSL Debian is not available"
-                    }
-
-                    # -------------------------------------------------
-                    # Verify Ansible
-                    # -------------------------------------------------
-
-                    Write-Host "===== CHECK ANSIBLE ====="
-
-                    wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && ansible --version"
-
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Ansible is not available"
-                    }
-
-                    # -------------------------------------------------
-                    # Verify Windows collection
-                    # -------------------------------------------------
-
-                    Write-Host "===== CHECK ANSIBLE WINDOWS COLLECTION ====="
-
-                    wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && ansible-galaxy collection list ansible.windows"
-
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "ansible.windows collection is not available"
-                    }
-
-                    # -------------------------------------------------
-                    # Pass Jenkins credentials to WSL
-                    # -------------------------------------------------
-
-                    $env:ANSIBLE_VM_USERNAME = $env:VM_USERNAME
-                    $env:ANSIBLE_VM_PASSWORD = $env:VM_PASSWORD
-
-                    # -------------------------------------------------
-                    # Run Ansible
-                    # -------------------------------------------------
-
-                    Write-Host "===== RUN ANSIBLE WIN_PING ====="
-
-                    wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && cd '$wslWorkspace' && ansible windows -i inventory.ini -m ansible.windows.win_ping -e `"ansible_user=$env:ANSIBLE_VM_USERNAME`" -e `"ansible_password=$env:ANSIBLE_VM_PASSWORD`""
-
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Ansible WinRM connection failed"
-                    }
-
-                    Write-Host ""
-                    Write-Host "========================================"
-                    Write-Host "ANSIBLE WIN_PING SUCCESS"
-                    Write-Host "========================================"
-                    '''
+                if ($LASTEXITCODE -ne 0) {
+                    throw "WSL Debian is not available"
                 }
-            }
+
+                Write-Host "===== CHECK ANSIBLE ====="
+
+                wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && ansible --version"
+
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Ansible is not available"
+                }
+
+                Write-Host "===== CHECK INVENTORY ====="
+
+                wsl -d Debian bash -c "ls -l '$wslWorkspace/inventory.ini'"
+
+                if ($LASTEXITCODE -ne 0) {
+                    throw "inventory.ini cannot be accessed from WSL"
+                }
+
+                Write-Host "===== RUN ANSIBLE WIN_PING ====="
+
+                $env:ANSIBLE_VM_USERNAME = $env:VM_USERNAME
+                $env:ANSIBLE_VM_PASSWORD = $env:VM_PASSWORD
+
+                wsl -d Debian bash -c "source /home/ajay/ansible-venv/bin/activate && cd '$wslWorkspace' && ansible windows -i inventory.ini -m ansible.windows.win_ping -e `"ansible_user=$env:ANSIBLE_VM_USERNAME`" -e `"ansible_password=$env:ANSIBLE_VM_PASSWORD`""
+
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Ansible WinRM connection failed"
+                }
+
+                Write-Host "===== ANSIBLE WIN_PING SUCCESS ====="
+            '''
+        }
+    }
+}
+        
         }
     }
 
