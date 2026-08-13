@@ -112,7 +112,7 @@ pipeline {
                 '''
             }
         }
-/*
+
         stage('7. SonarQube Analysis') {
             steps {
                 script {
@@ -138,7 +138,7 @@ pipeline {
                 }
             }
         }
-*/
+        
         stage('8. Build Electron Application') {
             steps {
                 echo '===== BUILD ELECTRON APPLICATION ====='
