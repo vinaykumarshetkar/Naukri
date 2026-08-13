@@ -234,7 +234,7 @@ stage('13. Ansible WinRM Test') {
     }
 }
         
-        }
+        
     }
 
     post {
