@@ -199,7 +199,7 @@ pipeline {
                 )
             }
         }
-/*
+
         stage('11. Upload to Azure Blob Storage') {
             steps {
                 echo '===== UPLOADING TO AZURE BLOB STORAGE ====='
@@ -212,7 +212,7 @@ pipeline {
                 )
             }
         }
-*/
+
         stage('12. Verify Ansible Inventory') {
             steps {
                 echo '===== VERIFY ANSIBLE INVENTORY ====='
