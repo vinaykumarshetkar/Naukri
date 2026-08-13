@@ -4,8 +4,8 @@ pipeline {
     skipDefaultCheckout(true)
     }
     environment {
-        JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.8-hotspot'
-              NODE_HOME = 'C:\\Program Files\\nodejs'
+        JAVA_HOME = 'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.12.8-hotspot'
+        NODE_HOME = 'C:\\Program Files\\nodejs'
         PATH = "${JAVA_HOME}\\bin;${NODE_HOME};${env.PATH}"
     }
 
